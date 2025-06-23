@@ -30,11 +30,26 @@ enum FileUtils {
     }
   }
 
-  static func writePhotoToFile(photo: AVCapturePhoto, metadataProvider: MetadataProvider, file: URL) throws {
-    guard let data = photo.fileDataRepresentation(with: metadataProvider) else {
-      throw CameraError.capture(.imageDataAccessError)
+  static func writePhotoToFile(photo: AVCapturePhoto, metadataProvider: MetadataProvider, file: URL, format: String = "jpeg") throws {
+    if format == "png" {
+      // For PNG, we need to convert through UIImage
+      guard let data = photo.cgImageRepresentation() else {
+        throw CameraError.capture(.imageDataAccessError)
+      }
+      guard let image = UIImage(data: data) else {
+        throw CameraError.capture(.imageDataAccessError)
+      }
+      guard let pngData = image.pngData() else {
+        throw CameraError.capture(.imageDataAccessError)
+      }
+      try writeDataToFile(data: pngData, file: file)
+    } else {
+      // Default JPEG behavior
+      guard let data = photo.fileDataRepresentation(with: metadataProvider) else {
+        throw CameraError.capture(.imageDataAccessError)
+      }
+      try writeDataToFile(data: data, file: file)
     }
-    try writeDataToFile(data: data, file: file)
   }
 
   static func writeUIImageToFile(image: UIImage, file: URL, compressionQuality: CGFloat = 1.0) throws {
